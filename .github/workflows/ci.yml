@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          MONGO_URI: mongodb://localhost:27017
+          MONGO_DB: threat_platform
+          JWT_SECRET: ci-secret
+        run: pytest tests
+      - name: Build backend image
+        run: docker build -f docker/backend.Dockerfile -t threat-platform-backend .
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ''
+        run: npm run build
+      - name: Build frontend image
+        run: docker build -f docker/frontend.Dockerfile -t threat-platform-frontend .
+
+  deploy:
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy placeholder
+        run: |
+          echo "Add your production deploy command here."
+          echo "Typical target: ECS, EKS, Cloud Run, or a Docker host."
