@@ -1,58 +1,136 @@
 # Real-Time Threat Monitoring & Analysis Platform
 
-A production-ready cybersecurity monitoring stack for ingesting logs, detecting threats in real time, broadcasting live alerts, and visualizing incidents in a modern dashboard.
+Full-stack threat monitoring app with:
+- FastAPI backend
+- MongoDB storage
+- React dashboard
+- Docker Compose orchestration
 
-## What it does
+The current backend API stores threat records and returns them for dashboard visualization.
 
-- Ingests system and application logs through a secure FastAPI API.
-- Detects brute force, suspicious activity, and anomaly signals with rule-based logic plus Isolation Forest scoring.
-- Stores logs, threats, alerts, and users in MongoDB.
-- Streams live updates to the dashboard over WebSockets.
-- Protects endpoints with JWT authentication, role-based access, and rate limiting.
-- Ships with Docker Compose, NGINX reverse proxy, and a GitHub Actions pipeline.
+## Project Structure
 
-## Quick Start
+```text
+backend/        FastAPI app and API endpoints
+frontend/       React dashboard UI
+docker/         Backend and frontend Dockerfiles
+nginx/          Reverse proxy config
+docker-compose.yml
+```
 
-1. Copy the environment file:
+## What Works Right Now
 
-   ```bash
-   cp .env.example .env
-   ```
+- `POST /threat` saves threats in MongoDB.
+- `GET /threats` returns all stored threats.
+- Frontend dashboard fetches `/threats` and renders records, charts, and feed.
+- CORS is enabled for local development.
 
-2. Start the full stack:
+## Prerequisites
 
-   ```bash
-   docker compose up --build
-   ```
+- Docker Engine
+- Docker Compose v1 (`docker-compose`) or v2 (`docker compose`)
 
-3. Open the dashboard:
+## Run Locally (Recommended)
 
-   ```text
-   http://localhost
-   ```
+Run commands from repository root:
 
-## Demo Credentials
+```bash
+cd "/home/azhar/Real-Time Threat Monitoring & Analysis Platform"
+docker-compose down
+docker-compose up -d --build
+```
 
-- Admin: `admin / ChangeMe123!`
-- Analyst: `analyst / ChangeMe123!`
+## Service URLs
 
-## Main Endpoints
+- Backend API: `http://localhost:8000`
+- Frontend (via NGINX): `http://localhost:18080`
+- MongoDB host port: `localhost:27018`
 
-- `POST /auth/login`
-- `POST /logs`
-- `GET /alerts`
-- `GET /threats`
-- `GET /health`
-- `GET /ws/live`
+## API Usage
 
-## Architecture
+### Create Threat
 
-See [docs/architecture.md](docs/architecture.md).
+```bash
+curl -X POST http://localhost:8000/threat \
+   -H "Content-Type: application/json" \
+   -d '{"ip":"8.8.8.8","threat_type":"Malware","severity":"high"}'
+```
 
-## Deployment
+Response:
 
-See [docs/deployment.md](docs/deployment.md).
+```json
+{"message":"Threat stored successfully"}
+```
 
-## Sample Logs
+### List Threats
 
-See [docs/sample-logs.md](docs/sample-logs.md).
+```bash
+curl http://localhost:8000/threats
+```
+
+Sample response:
+
+```json
+[
+   {
+      "ip": "8.8.8.8",
+      "threat_type": "Malware",
+      "severity": "high",
+      "timestamp": "2026-04-13T10:23:12.123456"
+   }
+]
+```
+
+## Frontend Data Flow
+
+Dashboard fetches threat data from:
+
+`http://localhost:8000/threats`
+
+Each record expects:
+- `ip`
+- `threat_type`
+- `severity`
+- `timestamp` (optional, dashboard safely handles missing values)
+
+## Troubleshooting
+
+### 1. Compose file not found
+
+Error:
+`Can't find a suitable configuration file in this directory`
+
+Fix:
+
+```bash
+cd "/home/azhar/Real-Time Threat Monitoring & Analysis Platform"
+```
+
+### 2. Port already allocated (Mongo 27018)
+
+Error:
+`Bind for 0.0.0.0:27018 failed: port is already allocated`
+
+Fix:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+docker rm -f <container_using_27018>
+docker-compose up -d --build
+```
+
+### 3. docker-compose v1 `ContainerConfig` error
+
+If you see KeyError `ContainerConfig`, clear stale project containers and restart:
+
+```bash
+docker rm -f $(docker ps -aq --filter "name=real-timethreatmonitoringanalysisplatform") 2>/dev/null || true
+docker network rm real-timethreatmonitoringanalysisplatform_default 2>/dev/null || true
+docker-compose -p rtmap up -d --build
+```
+
+## Development Notes
+
+- Backend app entrypoint: [backend/app/main.py](backend/app/main.py)
+- Dashboard component: [frontend/src/components/Dashboard.jsx](frontend/src/components/Dashboard.jsx)
+- Compose config: [docker-compose.yml](docker-compose.yml)
