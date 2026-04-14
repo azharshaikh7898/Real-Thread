@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,8 +9,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
     app_name: str = "Real-Time Threat Monitoring & Analysis Platform"
-    mongo_uri: str = Field(default="mongodb://localhost:27017", alias="MONGO_URI")
-    mongo_db: str = Field(default="threat_platform", alias="MONGO_DB")
+    database_path: str = Field(
+        default_factory=lambda: str(Path(__file__).resolve().parents[2] / "data" / "app_state.json"),
+        alias="DATABASE_PATH",
+    )
     jwt_secret: str = Field(default="change-me", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")

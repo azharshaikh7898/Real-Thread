@@ -1,12 +1,4 @@
 services:
-  mongo:
-    image: mongo:7.0
-    restart: unless-stopped
-    ports:
-      - "${MONGO_HOST_PORT:-27019}:27017"
-    volumes:
-      - mongo_data:/data/db
-
   backend:
     build:
       context: .
@@ -15,10 +7,9 @@ services:
     env_file:
       - .env
     environment:
-      MONGO_URI: mongodb://mongo:27017
-      MONGO_DB: threat_platform
-    depends_on:
-      - mongo
+      DATABASE_PATH: /app/data/app_state.json
+    volumes:
+      - backend_data:/app/data
     ports:
       - "${BACKEND_HOST_PORT:-8001}:8000"
 
@@ -48,4 +39,4 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
-  mongo_data:
+  backend_data:

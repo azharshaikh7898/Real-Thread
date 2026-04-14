@@ -6,11 +6,11 @@ from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.core.config import get_settings
 from app.core.rate_limiter import InMemoryRateLimiter
 from app.core.security import hash_password
+from app.local_db import LocalDatabase
 from app.routes.alerts import router as alerts_router
 from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
@@ -37,7 +37,6 @@ async def _wait_for_database(database) -> None:
 
 async def _seed_demo_data(app: FastAPI) -> None:
     database = app.state.database
-    settings = app.state.settings
 
     if await database["users"].count_documents({}) == 0:
         await database["users"].insert_many(
@@ -68,11 +67,9 @@ async def _seed_demo_data(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    client = AsyncIOMotorClient(settings.mongo_uri)
-    database = client[settings.mongo_db]
+    database = LocalDatabase(settings.database_path)
 
     app.state.settings = settings
-    app.state.mongo_client = client
     app.state.database = database
     app.state.rate_limiter = InMemoryRateLimiter()
     app.state.websocket_manager = WebSocketManager()
@@ -100,7 +97,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        client.close()
+        await database.close()
 
 
 app = FastAPI(title=get_settings().app_name, lifespan=lifespan)
