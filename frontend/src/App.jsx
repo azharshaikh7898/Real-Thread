@@ -160,7 +160,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginView onLogin={handleLogin} error={error} loading={authLoading} />} />
-      <Route path="/dashboard" element={dashboardElement} />
+      <Route path="/dashboard" element={token ? dashboardElement : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to={token ? '/dashboard' : '/'} replace />} />
     </Routes>
   );
