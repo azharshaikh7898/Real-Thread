@@ -56,6 +56,11 @@ docker-compose up -d --build
 - Frontend (via NGINX): `http://localhost:18080`
 - MongoDB host port: `localhost:27019`
 
+## Live Deployment
+
+- Frontend: `https://real-threaddd.onrender.com/dashboard`
+- Backend Docs: `https://real-threadd.onrender.com/docs`
+
 The frontend is built with `VITE_API_BASE_URL=http://localhost:8001` by default so the browser can reach the backend directly during local development.
 
 ## API Usage
