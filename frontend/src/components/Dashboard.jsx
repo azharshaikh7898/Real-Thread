@@ -3,7 +3,6 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import FeedIcon from '@mui/icons-material/Feed';
 import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 import GppGoodIcon from '@mui/icons-material/GppGood';
-import { useEffect, useState } from 'react';
 import {
   Box,
   Chip,
@@ -98,20 +97,7 @@ function SeverityChip({ severity }) {
 }
 
 export default function Dashboard({ summary, threats, alerts, health, liveEvents, role, onLogout }) {
-  const [apiThreats, setApiThreats] = useState([]);
-
-  useEffect(() => {
-    fetch('http://localhost:8000/threats')
-      .then((res) => res.json())
-      .then((data) => {
-        setApiThreats(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        setApiThreats([]);
-      });
-  }, []);
-
-  const displayThreats = apiThreats.length ? apiThreats : threats;
+  const displayThreats = threats;
   const lineData = groupByHour(displayThreats);
   const pieData = severityDistribution(displayThreats);
   const latestAlerts = alerts.slice(0, 5);

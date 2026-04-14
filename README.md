@@ -8,6 +8,16 @@ Full-stack threat monitoring app with:
 
 The current backend API stores threat records and returns them for dashboard visualization.
 
+## Dashboard Screenshots
+
+![Real-Time Threat Monitoring Dashboard](docs/dashboard-screenshot.png)
+
+Main dashboard view with threat timeline, severity distribution, and live threat feed.
+
+![Live Threat Feed](docs/threat-feed-screenshot.png)
+
+Detailed live threat feed showing threats by IP address with severity badges.
+
 ## Project Structure
 
 ```text
@@ -42,16 +52,18 @@ docker-compose up -d --build
 
 ## Service URLs
 
-- Backend API: `http://localhost:8000`
+- Backend API: `http://localhost:8001`
 - Frontend (via NGINX): `http://localhost:18080`
-- MongoDB host port: `localhost:27018`
+- MongoDB host port: `localhost:27019`
+
+The frontend is built with `VITE_API_BASE_URL=http://localhost:8001` by default so the browser can reach the backend directly during local development.
 
 ## API Usage
 
 ### Create Threat
 
 ```bash
-curl -X POST http://localhost:8000/threat \
+curl -X POST http://localhost:8001/threat \
    -H "Content-Type: application/json" \
    -d '{"ip":"8.8.8.8","threat_type":"Malware","severity":"high"}'
 ```
@@ -65,7 +77,7 @@ Response:
 ### List Threats
 
 ```bash
-curl http://localhost:8000/threats
+curl http://localhost:8001/threats
 ```
 
 Sample response:
@@ -85,7 +97,7 @@ Sample response:
 
 Dashboard fetches threat data from:
 
-`http://localhost:8000/threats`
+`http://localhost:8001/threats`
 
 Each record expects:
 - `ip`
@@ -106,16 +118,16 @@ Fix:
 cd "/home/azhar/Real-Time Threat Monitoring & Analysis Platform"
 ```
 
-### 2. Port already allocated (Mongo 27018)
+### 2. Port already allocated (Mongo 27019)
 
 Error:
-`Bind for 0.0.0.0:27018 failed: port is already allocated`
+`Bind for 0.0.0.0:27019 failed: port is already allocated`
 
 Fix:
 
 ```bash
 docker ps --format "table {{.Names}}\t{{.Ports}}"
-docker rm -f <container_using_27018>
+docker rm -f <container_using_27019>
 docker-compose up -d --build
 ```
 

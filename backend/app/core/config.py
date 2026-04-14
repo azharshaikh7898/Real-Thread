@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(default="change-me", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
-    cors_origins: str = Field(default="http://localhost,http://localhost:3000,http://localhost:4173", alias="CORS_ORIGINS")
+    cors_origins: str = Field(default="http://localhost,http://localhost:3000,http://localhost:4173,http://localhost:18080", alias="CORS_ORIGINS")
     webhook_url: str | None = Field(default=None, alias="WEBHOOK_URL")
     smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
     smtp_port: int = Field(default=587, alias="SMTP_PORT")
