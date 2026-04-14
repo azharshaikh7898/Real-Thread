@@ -1,21 +1,15 @@
 import SecurityIcon from '@mui/icons-material/Security';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function LoginView({ onLogin, error, loading }) {
-  const navigate = useNavigate();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('ChangeMe123!');
 
-  useEffect(() => {
-    navigate('/dashboard', { replace: true });
-  }, [navigate]);
-
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    navigate('/dashboard', { replace: true });
+    await onLogin(username, password);
   };
 
   return (
