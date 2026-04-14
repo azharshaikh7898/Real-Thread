@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://real-thread-backend.onrender.com';
 
 function buildUrl(path) {
   return `${API_BASE}${path}`;
