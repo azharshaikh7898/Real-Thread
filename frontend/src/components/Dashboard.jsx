@@ -3,6 +3,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import FeedIcon from '@mui/icons-material/Feed';
 import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 import GppGoodIcon from '@mui/icons-material/GppGood';
+import { Button } from '@mui/material';
 import {
   Box,
   Chip,
@@ -25,6 +26,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+
+import CaseWorkbench from './CaseWorkbench';
 
 const severityPalette = {
   low: '#60a5fa',
@@ -96,7 +99,7 @@ function SeverityChip({ severity }) {
   );
 }
 
-export default function Dashboard({ summary, threats, alerts, health, liveEvents, role, onLogout }) {
+export default function Dashboard({ summary, threats, alerts, cases, caseTimeline, selectedCase, ingestionHealth, tuningSummary, finalReport, health, liveEvents, role, onLogout, onSelectCase, onCreateCaseFromAlert, onUpdateCase }) {
   const displayThreats = threats;
   const lineData = groupByHour(displayThreats);
   const pieData = severityDistribution(displayThreats);
@@ -118,6 +121,7 @@ export default function Dashboard({ summary, threats, alerts, health, liveEvents
           <Chip icon={<ShieldIcon />} label={role} color="primary" />
           <Chip icon={<GppGoodIcon />} label={health?.status || 'unknown'} color={health?.status === 'operational' ? 'success' : 'warning'} />
           <Chip icon={<AccessAlarmIcon />} label={`${summary?.open_alerts || 0} open alerts`} color="warning" />
+          <Chip icon={<FeedIcon />} label={`${cases?.length || 0} cases`} color="info" />
           <Chip label="Sign out" variant="outlined" onClick={onLogout} clickable />
         </Stack>
       </Paper>
@@ -238,11 +242,26 @@ export default function Dashboard({ summary, threats, alerts, health, liveEvents
                   <Stack spacing={1} alignItems="flex-end">
                     <SeverityChip severity={alert.severity} />
                     <Typography variant="caption" color="text.secondary">{alert.delivery_status}</Typography>
+                    {onCreateCaseFromAlert ? (
+                      <Button size="small" variant="outlined" onClick={() => onCreateCaseFromAlert(alert.id)}>
+                        Open case
+                      </Button>
+                    ) : null}
                   </Stack>
                 </Box>
               )) : <Typography color="text.secondary">No alerts yet.</Typography>}
             </Stack>
           </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <CaseWorkbench
+            cases={cases}
+            selectedCase={selectedCase}
+            caseTimeline={caseTimeline}
+            onSelectCase={onSelectCase}
+            onUpdateCase={onUpdateCase}
+          />
         </Grid>
 
         <Grid item xs={12}>
@@ -259,6 +278,77 @@ export default function Dashboard({ summary, threats, alerts, health, liveEvents
               value={health?.status === 'operational' ? 100 : 55}
               sx={{ height: 10, borderRadius: 999, bgcolor: 'rgba(255,255,255,0.08)' }}
             />
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper className="panel">
+            <Box className="panel-header">
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>Ingestion health</Typography>
+              <Chip size="small" label={`${ingestionHealth?.total_sources || 0} sources`} />
+            </Box>
+            <Stack spacing={1.1}>
+              {(ingestionHealth?.source_metrics || []).slice(0, 4).map((source) => (
+                <Box key={source.source} className="health-row">
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{source.source}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {source.total_events} events | last seen {source.last_seen ? new Date(source.last_seen).toLocaleString() : 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip size="small" label={`${source.parse_success_rate}% parse`} />
+                    <Chip size="small" label={`${source.field_completeness_rate}% fields`} />
+                    <Chip size="small" label={`${source.timestamp_skew_violations} skew`} />
+                  </Stack>
+                </Box>
+              ))}
+              {!ingestionHealth?.source_metrics?.length ? <Typography color="text.secondary">No ingestion health data yet.</Typography> : null}
+            </Stack>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper className="panel">
+            <Box className="panel-header">
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>Tuning summary</Typography>
+              <Chip size="small" label={`${tuningSummary?.total_rules || 0} rules`} />
+            </Box>
+            <Stack spacing={1.1}>
+              <Box className="health-row">
+                <Typography variant="body2">Enabled rules</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{tuningSummary?.enabled_rules || 0}</Typography>
+              </Box>
+              <Box className="health-row">
+                <Typography variant="body2">Suppressed events</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{tuningSummary?.suppressed_events || 0}</Typography>
+              </Box>
+              <Box className="health-row">
+                <Typography variant="body2">Whitelisted events</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{tuningSummary?.whitelisted_events || 0}</Typography>
+              </Box>
+              <Box className="health-row">
+                <Typography variant="body2">Threshold rules</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{tuningSummary?.threshold_rules || 0}</Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper className="panel">
+            <Box className="panel-header">
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>Report snapshot</Typography>
+              <Chip size="small" label={finalReport?.generated_at ? new Date(finalReport.generated_at).toLocaleString() : 'pending'} />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              {finalReport?.executive_summary?.risk_posture || 'The generated report summarizes the current architecture, detections, cases, tuning, and roadmap.'}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Chip size="small" label={`${finalReport?.detection_catalog?.length || 0} detections in report`} />
+              <Chip size="small" label={`${finalReport?.dashboards?.length || 0} dashboards`} />
+              <Chip size="small" label={`${finalReport?.roadmap?.length || 0} roadmap items`} />
+            </Stack>
           </Paper>
         </Grid>
       </Grid>

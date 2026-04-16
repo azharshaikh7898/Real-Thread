@@ -48,6 +48,62 @@ export async function fetchAlerts(token) {
   return apiGet('/alerts?limit=50', token);
 }
 
+export async function fetchIngestionHealth(token) {
+  return apiGet('/metrics/ingestion-health', token);
+}
+
+export async function fetchTuningSummary(token) {
+  return apiGet('/tuning/summary', token);
+}
+
+export async function fetchFinalReport(token) {
+  return apiGet('/reports/final', token);
+}
+
+export async function fetchCases(token) {
+  return apiGet('/cases?limit=25', token);
+}
+
+export async function fetchCaseTimeline(token, caseId) {
+  return apiGet(`/cases/${caseId}/timeline`, token);
+}
+
+export async function createCase(token, payload) {
+  const response = await fetch(buildUrl('/cases'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Case creation failed');
+  }
+
+  return response.json();
+}
+
+export async function updateCase(token, caseId, payload) {
+  const response = await fetch(buildUrl(`/cases/${caseId}`), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Case update failed');
+  }
+
+  return response.json();
+}
+
 export async function fetchHealth() {
   const response = await fetch(buildUrl('/health'));
   if (!response.ok) {

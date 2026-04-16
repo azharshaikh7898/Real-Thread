@@ -12,12 +12,34 @@ class FakeCollection:
     async def count_documents(self, query):
         return sum(1 for document in self.documents if matches(document, query))
 
+    def find(self, query):
+        return FakeCursor([document for document in self.documents if matches(document, query)])
+
+
+class FakeCursor:
+    def __init__(self, documents):
+        self.documents = documents
+        self.index = 0
+
+    def __aiter__(self):
+        self.index = 0
+        return self
+
+    async def __anext__(self):
+        if self.index >= len(self.documents):
+            raise StopAsyncIteration
+        item = self.documents[self.index]
+        self.index += 1
+        return item
+
 
 class FakeDatabase:
     def __init__(self, logs):
         self._collections = {"logs": FakeCollection(logs)}
 
     def __getitem__(self, name):
+        if name not in self._collections:
+            self._collections[name] = FakeCollection([])
         return self._collections[name]
 
 
@@ -80,3 +102,52 @@ async def test_payload_abuse_detection_triggers_on_injection_signature():
     threats = await detector.detect(threat_log, database)
 
     assert any(threat["threat_type"] == "payload_abuse" for threat in threats)
+
+
+@pytest.mark.asyncio
+async def test_suspicious_powershell_detection_includes_mitre_mapping():
+    detector = ThreatDetector(anomaly_enabled=False)
+    database = FakeDatabase([])
+    threat_log = {
+        "id": "log-3",
+        "timestamp": datetime.now(timezone.utc),
+        "message": "powershell.exe -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAKQ==",
+        "event_type": "process",
+        "severity": "high",
+        "src_ip": "198.51.100.27",
+    }
+
+    threats = await detector.detect(threat_log, database)
+
+    hit = next((threat for threat in threats if threat["threat_type"] == "suspicious_powershell"), None)
+    assert hit is not None
+    assert hit["mitre_technique"] == "T1059.001"
+    assert hit["rule_id"] == "EXEC-001"
+
+
+@pytest.mark.asyncio
+async def test_exfiltration_detection_for_rare_destination():
+    detector = ThreatDetector(anomaly_enabled=False)
+    now = datetime.now(timezone.utc)
+    database = FakeDatabase(
+        [
+            {
+                "dest_ip": "203.0.113.99",
+                "timestamp": now - timedelta(hours=2),
+            }
+        ]
+    )
+    threat_log = {
+        "id": "log-4",
+        "timestamp": now,
+        "message": "Outbound transfer complete",
+        "event_type": "network",
+        "severity": "warning",
+        "src_ip": "10.0.0.15",
+        "dest_ip": "203.0.113.99",
+        "metadata": {"outbound_bytes": 7_500_000},
+    }
+
+    threats = await detector.detect(threat_log, database)
+
+    assert any(threat["threat_type"] == "possible_exfiltration" for threat in threats)

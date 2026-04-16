@@ -12,11 +12,15 @@ from app.core.rate_limiter import InMemoryRateLimiter
 from app.core.security import hash_password
 from app.local_db import LocalDatabase
 from app.routes.alerts import router as alerts_router
+from app.routes.cases import router as cases_router
 from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
+from app.routes.onboarding import router as onboarding_router
 from app.routes.logs import router as logs_router
 from app.routes.metrics import router as metrics_router
+from app.routes.reports import router as reports_router
 from app.routes.threats import router as threats_router
+from app.routes.tuning import router as tuning_router
 from app.sample_data import SAMPLE_LOGS
 from app.services.detector import ThreatDetector
 from app.services.monitoring import MonitoringService
@@ -114,6 +118,10 @@ app.include_router(auth_router)
 app.include_router(logs_router)
 app.include_router(threats_router)
 app.include_router(alerts_router)
+app.include_router(cases_router)
+app.include_router(onboarding_router)
+app.include_router(tuning_router)
+app.include_router(reports_router)
 app.include_router(metrics_router)
 app.include_router(health_router)
 

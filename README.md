@@ -34,6 +34,20 @@ docker-compose.yml
 - `GET /threats` returns all stored threats.
 - Frontend dashboard fetches `/threats` and renders records, charts, and feed.
 - CORS is enabled for local development.
+- `POST /logs` ingests normalized events with schema and enrichment fields.
+- `POST /onboarding/validate` and `POST /onboarding/register` validate and register source onboarding samples.
+- Detection engine includes MITRE-mapped rules for brute force, spray, payload abuse, suspicious PowerShell, persistence, lateral movement, exfiltration indicators, anomaly, and privileged probing.
+- `GET /metrics/ingestion-health` provides ingestion quality by source (parse success, field completeness, timestamp skew).
+- `POST /cases`, `PATCH /cases/{id}`, and `GET /cases/{id}/timeline` support analyst case management and investigation timelines.
+- `GET /tuning/summary` and `POST /tuning` support suppression, whitelist, and threshold tuning workflows.
+- `GET /reports/final` returns a generated audit-ready threat monitoring report artifact.
+
+## SOC Documentation Pack
+
+- Gap matrix: [docs/gap-matrix.md](docs/gap-matrix.md)
+- Detection catalog: [docs/detection-catalog.md](docs/detection-catalog.md)
+- Triage and investigation playbook: [docs/triage-investigation-playbook.md](docs/triage-investigation-playbook.md)
+- Report template: [docs/threat-monitoring-report-template.md](docs/threat-monitoring-report-template.md)
 
 ## Prerequisites
 

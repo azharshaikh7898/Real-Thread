@@ -4,7 +4,21 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 
 import Dashboard from './components/Dashboard';
 import LoginView from './components/LoginView';
-import { buildWebSocketUrl, fetchAlerts, fetchHealth, fetchSummary, fetchThreats, login } from './api/client';
+import {
+  buildWebSocketUrl,
+  createCase,
+  fetchAlerts,
+  fetchCaseTimeline,
+  fetchCases,
+  fetchFinalReport,
+  fetchIngestionHealth,
+  fetchHealth,
+  fetchSummary,
+  fetchTuningSummary,
+  fetchThreats,
+  login,
+  updateCase,
+} from './api/client';
 
 const TOKEN_KEY = 'threat-monitoring-token';
 
@@ -16,6 +30,12 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [threats, setThreats] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [cases, setCases] = useState([]);
+  const [selectedCaseId, setSelectedCaseId] = useState('');
+  const [caseTimeline, setCaseTimeline] = useState([]);
+  const [ingestionHealth, setIngestionHealth] = useState(null);
+  const [tuningSummary, setTuningSummary] = useState(null);
+  const [finalReport, setFinalReport] = useState(null);
   const [health, setHealth] = useState(null);
   const [liveEvents, setLiveEvents] = useState([]);
   const [loading, setLoading] = useState(Boolean(token));
@@ -34,11 +54,15 @@ export default function App() {
 
     async function loadDashboard() {
       try {
-        const [summaryData, threatsData, alertsData, healthData] = await Promise.all([
+        const [summaryData, threatsData, alertsData, healthData, casesData, ingestionHealthData, tuningSummaryData, reportData] = await Promise.all([
           fetchSummary(token),
           fetchThreats(token),
           fetchAlerts(token),
           fetchHealth(),
+          fetchCases(token),
+          fetchIngestionHealth(token),
+          fetchTuningSummary(token),
+          fetchFinalReport(token),
         ]);
         if (cancelled) {
           return;
@@ -47,6 +71,13 @@ export default function App() {
         setThreats(threatsData);
         setAlerts(alertsData);
         setHealth(healthData);
+        setCases(casesData);
+        setIngestionHealth(ingestionHealthData);
+        setTuningSummary(tuningSummaryData);
+        setFinalReport(reportData);
+        if (!selectedCaseId && casesData.length > 0) {
+          setSelectedCaseId(casesData[0].id);
+        }
         setLoading(false);
       } catch (requestError) {
         if (!cancelled) {
@@ -98,6 +129,41 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
+    if (!token || !selectedCaseId) {
+      setCaseTimeline([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadTimeline() {
+      try {
+        const timelineData = await fetchCaseTimeline(token, selectedCaseId);
+        if (!cancelled) {
+          setCaseTimeline(timelineData);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setSnack(requestError.message);
+          setCaseTimeline([]);
+        }
+      }
+    }
+
+    loadTimeline();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, selectedCaseId]);
+
+  useEffect(() => {
+    if (!selectedCaseId && cases.length > 0) {
+      setSelectedCaseId(cases[0].id);
+    }
+  }, [cases, selectedCaseId]);
+
+  useEffect(() => {
     if (token && location.pathname === '/') {
       navigate('/dashboard', { replace: true });
     }
@@ -127,10 +193,50 @@ export default function App() {
     setSummary(null);
     setThreats([]);
     setAlerts([]);
+    setCases([]);
+    setSelectedCaseId('');
+    setCaseTimeline([]);
+    setIngestionHealth(null);
+    setTuningSummary(null);
+    setFinalReport(null);
     setHealth(null);
     setLiveEvents([]);
     navigate('/', { replace: true });
   }
+
+  async function handleCreateCaseFromAlert(alertId) {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const newCase = await createCase(token, { alert_id: alertId });
+      const casesData = await fetchCases(token);
+      setCases(casesData);
+      setSelectedCaseId(newCase.id);
+      setSnack(`Case opened: ${newCase.title}`);
+    } catch (requestError) {
+      setSnack(requestError.message);
+    }
+  }
+
+  async function handleUpdateCase(caseId, updates) {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const updatedCase = await updateCase(token, caseId, updates);
+      const casesData = await fetchCases(token);
+      setCases(casesData);
+      setSelectedCaseId(updatedCase.id);
+      setSnack(`Case updated: ${updatedCase.title}`);
+    } catch (requestError) {
+      setSnack(requestError.message);
+    }
+  }
+
+  const selectedCase = cases.find((item) => item.id === selectedCaseId) || null;
 
   const dashboardElement = loading ? (
     <Box className="loading-state">
@@ -143,10 +249,19 @@ export default function App() {
         summary={summary}
         threats={threats}
         alerts={alerts}
+        cases={cases}
+        caseTimeline={caseTimeline}
+        selectedCase={selectedCase}
+        ingestionHealth={ingestionHealth}
+        tuningSummary={tuningSummary}
+        finalReport={finalReport}
         health={health}
         liveEvents={liveEvents}
         role={role || 'authenticated'}
         onLogout={handleLogout}
+        onSelectCase={setSelectedCaseId}
+        onCreateCaseFromAlert={handleCreateCaseFromAlert}
+        onUpdateCase={handleUpdateCase}
       />
       <Snackbar
         open={Boolean(snack)}

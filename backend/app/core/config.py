@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     cors_origins: str = Field(
         default=(
             "http://localhost,http://localhost:3000,http://localhost:4173,http://localhost:18080,"
-            "http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:4173,http://127.0.0.1:4174,http://127.0.0.1:18080"
+            "http://localhost:18081,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:4173,"
+            "http://127.0.0.1:4174,http://127.0.0.1:18080,http://127.0.0.1:18081"
         ),
         alias="CORS_ORIGINS",
     )
@@ -34,11 +35,16 @@ class Settings(BaseSettings):
     rate_limit_logs: int = Field(default=120, alias="RATE_LIMIT_LOGS")
     anomaly_enabled: bool = Field(default=True, alias="ANOMALY_ENABLED")
     anomaly_contamination: float = Field(default=0.08, alias="ANOMALY_CONTAMINATION")
+    ioc_watchlist: str = Field(default="", alias="IOC_WATCHLIST")
     seed_default_users: bool = True
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def ioc_watchlist_set(self) -> set[str]:
+        return {item.strip() for item in self.ioc_watchlist.split(",") if item.strip()}
 
 
 @lru_cache(maxsize=1)
