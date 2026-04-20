@@ -1,10 +1,15 @@
 :root {
-  color-scheme: dark;
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(96, 165, 250, 0.25), transparent 35%),
-    radial-gradient(circle at top right, rgba(54, 211, 153, 0.18), transparent 30%),
-    linear-gradient(180deg, #06101d 0%, #08111f 100%);
+  color-scheme: light;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  --bg: #f5f1e8;
+  --bg-soft: #fbf8f0;
+  --ink: #1f2b2d;
+  --ink-muted: #58646a;
+  --line: #d6d2c7;
+  --paper: rgba(255, 252, 247, 0.78);
+  --card: rgba(255, 250, 243, 0.88);
+  --accent: #0f766e;
+  --accent-2: #d97706;
 }
 
 html,
@@ -15,49 +20,56 @@ body,
 
 body {
   margin: 0;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.12), transparent 24%),
-    radial-gradient(circle at 80% 10%, rgba(54, 211, 153, 0.14), transparent 20%),
-    linear-gradient(180deg, #06101d 0%, #08111f 100%);
+    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.11), transparent 24%),
+    radial-gradient(circle at 78% 12%, rgba(245, 158, 11, 0.11), transparent 23%),
+    linear-gradient(145deg, #efe8d9 0%, #f8f4ec 48%, #f1e9dd 100%);
 }
 
 .login-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr;
-  gap: 32px;
+  grid-template-columns: 1.22fr 0.88fr;
+  gap: 34px;
   align-items: center;
-  padding: 40px;
+  padding: clamp(18px, 3vw, 40px);
 }
 
 .login-hero {
-  max-width: 760px;
+  max-width: 780px;
+  animation: hero-rise 620ms ease both;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border-radius: 999px;
-  background: rgba(54, 211, 153, 0.14);
-  color: #9ef0ca;
-  font-weight: 700;
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400e;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
   margin-bottom: 18px;
+  border: 1px solid rgba(217, 119, 6, 0.2);
 }
 
 .hero-title {
-  font-size: clamp(2.8rem, 7vw, 5.4rem) !important;
-  line-height: 0.98 !important;
-  margin-bottom: 18px !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-size: clamp(2.55rem, 5.8vw, 4.7rem) !important;
+  line-height: 0.97 !important;
+  color: #1f2b2d;
+  margin-bottom: 16px !important;
+  text-wrap: balance;
 }
 
 .hero-copy {
-  max-width: 620px;
+  max-width: 600px;
   font-size: 1.1rem !important;
-  color: #b7c8df;
+  color: var(--ink-muted);
+  line-height: 1.62 !important;
 }
 
 .hero-points {
@@ -73,12 +85,17 @@ body {
   align-items: center;
   padding: 12px 16px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 250, 242, 0.88);
+  border: 1px dashed rgba(31, 41, 55, 0.2);
+  box-shadow: 0 9px 22px rgba(90, 77, 57, 0.08);
 }
 
 .login-card {
-  padding: 28px;
+  padding: 30px;
+  background: linear-gradient(155deg, rgba(255, 253, 249, 0.96), rgba(251, 246, 236, 0.95));
+  border: 1px solid rgba(120, 113, 97, 0.18);
+  box-shadow: 0 18px 60px rgba(80, 68, 50, 0.17);
+  animation: card-rise 660ms 100ms ease both;
 }
 
 .login-form {
@@ -90,13 +107,14 @@ body {
   margin-top: 22px;
   padding: 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(248, 239, 226, 0.8);
+  border: 1px solid rgba(120, 113, 97, 0.2);
 }
 
 .dashboard-shell {
   min-height: 100vh;
-  padding: 28px;
+  padding: clamp(14px, 2vw, 30px);
+  animation: page-appear 420ms ease-out both;
 }
 
 .topbar {
@@ -106,12 +124,22 @@ body {
   align-items: center;
   padding: 20px 24px;
   margin-bottom: 22px;
+  border: 1px solid rgba(56, 53, 46, 0.2);
+  background:
+    linear-gradient(120deg, rgba(255, 248, 236, 0.8), rgba(254, 253, 247, 0.86)),
+    linear-gradient(70deg, rgba(15, 118, 110, 0.08), rgba(217, 119, 6, 0.09));
 }
 
 .stat-card,
 .panel {
   padding: 20px;
   height: 100%;
+  border: 1px solid rgba(69, 63, 52, 0.2);
+  background: var(--paper);
+}
+
+.panel {
+  backdrop-filter: blur(8px);
 }
 
 .panel-large {
@@ -137,7 +165,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 30px rgba(84, 72, 54, 0.23);
 }
 
 .chart-wrap {
@@ -160,9 +188,9 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid rgba(86, 80, 67, 0.2);
 }
 
 .feed-item-main {
@@ -178,9 +206,9 @@ body {
 .case-item,
 .timeline-item {
   padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid rgba(86, 80, 67, 0.2);
 }
 
 .case-item {
@@ -191,8 +219,8 @@ body {
 .case-item:hover,
 .case-item-selected {
   transform: translateY(-1px);
-  border-color: rgba(96, 165, 250, 0.28);
-  background: rgba(96, 165, 250, 0.07);
+  border-color: rgba(15, 118, 110, 0.55);
+  background: rgba(15, 118, 110, 0.09);
 }
 
 .case-empty-state {
@@ -221,9 +249,9 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid rgba(86, 80, 67, 0.2);
 }
 
 .loading-state {
@@ -234,14 +262,63 @@ body {
   flex-direction: column;
 }
 
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(120, 113, 97, 0.14);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 118, 110, 0.42);
+  border-radius: 999px;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 960px) {
   .login-shell {
     grid-template-columns: 1fr;
-    padding: 20px;
+    padding: 18px;
+    gap: 20px;
   }
 
   .dashboard-shell {
-    padding: 16px;
+    padding: 14px;
   }
 
   .topbar {
@@ -250,7 +327,9 @@ body {
   }
 
   .feed-item,
-  .alert-row {
+  .alert-row,
+  .timeline-item,
+  .health-row {
     flex-direction: column;
   }
 

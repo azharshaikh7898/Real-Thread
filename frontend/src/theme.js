@@ -2,47 +2,47 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#36d399',
+      main: '#0f766e',
     },
     secondary: {
-      main: '#60a5fa',
+      main: '#d97706',
     },
     background: {
-      default: '#08111f',
-      paper: 'rgba(8, 17, 31, 0.82)',
+      default: '#f5f1e8',
+      paper: 'rgba(255, 252, 247, 0.8)',
     },
     text: {
-      primary: '#f3f8ff',
-      secondary: '#9fb2cc',
+      primary: '#1f2b2d',
+      secondary: '#58646a',
     },
   },
   typography: {
-    fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+    fontFamily: '"Manrope", "Segoe UI", sans-serif',
     h1: {
-      fontFamily: '"Space Grotesk", system-ui, sans-serif',
-      fontWeight: 700,
+      fontFamily: '"Fraunces", Georgia, serif',
+      fontWeight: 600,
     },
     h2: {
-      fontFamily: '"Space Grotesk", system-ui, sans-serif',
-      fontWeight: 700,
+      fontFamily: '"Fraunces", Georgia, serif',
+      fontWeight: 600,
     },
     h3: {
-      fontFamily: '"Space Grotesk", system-ui, sans-serif',
-      fontWeight: 700,
+      fontFamily: '"Fraunces", Georgia, serif',
+      fontWeight: 600,
     },
   },
   shape: {
-    borderRadius: 20,
+    borderRadius: 16,
   },
   components: {
     MuiPaper: {
       styleOverrides: {
         root: {
-          backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(145, 180, 255, 0.12)',
-          backgroundImage: 'linear-gradient(180deg, rgba(12, 21, 38, 0.92), rgba(8, 17, 31, 0.88))',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(95, 88, 73, 0.18)',
+          backgroundImage: 'linear-gradient(180deg, rgba(255, 252, 247, 0.93), rgba(250, 246, 238, 0.86))',
         },
       },
     },
@@ -52,6 +52,18 @@ const theme = createTheme({
           textTransform: 'none',
           borderRadius: 14,
           fontWeight: 700,
+        },
+        containedPrimary: {
+          backgroundImage: 'linear-gradient(135deg, #0f766e, #0ea5a0)',
+          color: '#f8fffe',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 700,
+          borderRadius: 12,
         },
       },
     },
