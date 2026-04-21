@@ -35,8 +35,13 @@ class Settings(BaseSettings):
     rate_limit_logs: int = Field(default=120, alias="RATE_LIMIT_LOGS")
     anomaly_enabled: bool = Field(default=True, alias="ANOMALY_ENABLED")
     anomaly_contamination: float = Field(default=0.08, alias="ANOMALY_CONTAMINATION")
+    enable_external_enrichment: bool = Field(default=True, alias="ENABLE_EXTERNAL_ENRICHMENT")
+    enrichment_timeout_seconds: int = Field(default=6, alias="ENRICHMENT_TIMEOUT_SECONDS")
+    virustotal_api_key: str | None = Field(default=None, alias="VIRUSTOTAL_API_KEY")
+    alienvault_otx_api_key: str | None = Field(default=None, alias="ALIENVAULT_OTX_API_KEY")
     ioc_watchlist: str = Field(default="", alias="IOC_WATCHLIST")
-    seed_default_users: bool = True
+    seed_default_users: bool = Field(default=True, alias="SEED_DEFAULT_USERS")
+    seed_demo_logs: bool = Field(default=True, alias="SEED_DEMO_LOGS")
 
     @property
     def cors_origin_list(self) -> list[str]:

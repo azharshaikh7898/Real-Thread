@@ -70,6 +70,163 @@ docker-compose up -d --build
 - Frontend (via NGINX): `http://localhost:18080`
 - MongoDB host port: `localhost:27019`
 
+## Real-Time Mode (No Sample Threats)
+
+By default, the backend seeds demo users and demo log events on first startup.
+To run with real incoming events only, disable demo log seeding.
+
+Set environment variables before starting backend:
+
+```bash
+SEED_DEFAULT_USERS=true
+SEED_DEMO_LOGS=false
+```
+
+If you use Docker Compose, add these to the backend service environment and restart.
+
+Once enabled, the live feed is populated only by events you send to `POST /logs`.
+
+## APIs To Integrate For Live Threat Feed
+
+Use this flow for real-time, non-sample threat updates:
+
+1. `POST /auth/login` to get a JWT.
+2. `POST /logs` from your log shipper/SIEM/agent.
+3. `WS /ws/live?token=<JWT>` from frontend to receive threat/alert/log events instantly.
+
+### Example: Get JWT
+
+```bash
+curl -X POST http://localhost:8001/auth/login \
+   -H "Content-Type: application/json" \
+   -d '{"username":"admin","password":"ChangeMe123!"}'
+```
+
+### Example: Push One Real Event
+
+```bash
+curl -X POST http://localhost:8001/logs \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer <JWT_TOKEN>" \
+   -d '{
+      "source": "linux",
+      "host": "prod-web-01",
+      "event_type": "auth_failure",
+      "message": "Failed SSH login for root from 10.0.0.20",
+      "severity": "medium",
+      "src_ip": "10.0.0.20",
+      "username": "root",
+      "status": "failed"
+   }'
+```
+
+### Example: Receive Live Events Over WebSocket
+
+Use browser frontend (already integrated) or a WebSocket client:
+
+```bash
+wscat -c "ws://localhost:8001/ws/live?token=<JWT_TOKEN>"
+```
+
+When a log triggers detection, backend broadcasts events with:
+- `event_type: threat`
+- `event_type: alert`
+- `event_type: log`
+
+This is what drives the Live Threat Feed in the dashboard.
+
+## Linux Auth Log Connector (Real Host Telemetry)
+
+For immediate real-time data, use the included Linux auth log shipper:
+
+- Script: `backend/scripts/linux_auth_shipper.py`
+- Input: `/var/log/auth.log`, `/var/log/nginx/access.log`, or `/var/log/syslog`
+- Output: normalized events to `POST /logs`
+
+### Run the connector
+
+```bash
+cd backend
+source .venv/bin/activate
+export RTMAP_API_BASE=http://localhost:8001
+export RTMAP_USERNAME=admin
+export RTMAP_PASSWORD='ChangeMe123!'
+export RTMAP_LOG_FILE=/var/log/auth.log
+export RTMAP_SOURCE_MODE=auth
+python scripts/linux_auth_shipper.py
+```
+
+Notes:
+- Use `sudo` if needed to read `/var/log/auth.log`.
+- Keep the frontend open at `/dashboard`; new auth failures/suspicious events appear in Live Threat Feed in real time.
+- To replay historical lines once, run with `--read-from-start`.
+
+### Example sources
+
+Auth logs:
+
+```bash
+RTMAP_LOG_FILE=/var/log/auth.log RTMAP_SOURCE_MODE=auth python scripts/linux_auth_shipper.py
+```
+
+Nginx access logs:
+
+```bash
+RTMAP_LOG_FILE=/var/log/nginx/access.log RTMAP_SOURCE_MODE=nginx python scripts/linux_auth_shipper.py
+```
+
+Generic syslog:
+
+```bash
+RTMAP_LOG_FILE=/var/log/syslog RTMAP_SOURCE_MODE=syslog python scripts/linux_auth_shipper.py
+```
+
+### Auto-start with systemd
+
+If you want the collector to start automatically at boot, install the included unit file:
+
+```bash
+ln -sfn "$PWD" /home/azhar/rtmap
+sudo cp deploy/systemd/rtmap-live-collector.service /etc/systemd/system/rtmap-live-collector.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now rtmap-live-collector
+sudo systemctl status rtmap-live-collector
+```
+
+If you switch between auth, nginx, or syslog, update `RTMAP_LOG_FILE` and `RTMAP_SOURCE_MODE` in `.env` before reloading the service:
+
+```bash
+sudo systemctl restart rtmap-live-collector
+```
+
+## VirusTotal + AlienVault OTX Threat Intel
+
+The backend now supports external threat intelligence enrichment for source IPs.
+
+Set these in your root `.env` (used by Docker Compose backend):
+
+```bash
+ENABLE_EXTERNAL_ENRICHMENT=true
+ENRICHMENT_TIMEOUT_SECONDS=6
+VIRUSTOTAL_API_KEY=<your_virustotal_key>
+ALIENVAULT_OTX_API_KEY=<your_otx_key>
+```
+
+After setting keys, restart backend:
+
+```bash
+docker-compose -p rtmap up -d --build backend
+```
+
+Frontend usage:
+- In **Live threat feed** and **Threats** sections, click **Threat intel**.
+- The dashboard fetches and shows risk score/summary from VirusTotal and AlienVault OTX.
+
+New APIs:
+- `GET /threats/intel/ip/{ip}`
+- `GET /threats/{threat_id}/intel`
+- `POST /threats/{threat_id}/enrich`
+
 ## Live Deployment
 
 - Frontend: `https://real-threaddd.onrender.com/dashboard`

@@ -1,0 +1,17 @@
+[Unit]
+Description=RTMAP Live Log Collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/azhar/rtmap/backend
+EnvironmentFile=/home/azhar/rtmap/.env
+ExecStart=/home/azhar/rtmap/backend/.venv/bin/python /home/azhar/rtmap/backend/scripts/linux_auth_shipper.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://real-thread-backend.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
 function buildUrl(path) {
   return `${API_BASE}${path}`;
@@ -44,8 +44,32 @@ export async function fetchThreats(token) {
   return apiGet('/threats?limit=50', token);
 }
 
+export async function fetchThreatIntelByIp(token, ip) {
+  return apiGet(`/threats/intel/ip/${encodeURIComponent(ip)}`, token);
+}
+
+export async function fetchThreatIntel(token, threatId) {
+  return apiGet(`/threats/${encodeURIComponent(threatId)}/intel`, token);
+}
+
 export async function fetchAlerts(token) {
   return apiGet('/alerts?limit=50', token);
+}
+
+export async function acknowledgeAlert(token, alertId) {
+  const response = await fetch(buildUrl(`/alerts/${encodeURIComponent(alertId)}/acknowledge`), {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Alert acknowledge failed');
+  }
+
+  return response.json();
 }
 
 export async function fetchIngestionHealth(token) {
@@ -99,6 +123,22 @@ export async function updateCase(token, caseId, payload) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Case update failed');
+  }
+
+  return response.json();
+}
+
+export async function enrichThreat(token, threatId) {
+  const response = await fetch(buildUrl(`/threats/${encodeURIComponent(threatId)}/enrich`), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Threat enrichment failed');
   }
 
   return response.json();

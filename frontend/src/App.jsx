@@ -5,6 +5,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Dashboard from './components/Dashboard';
 import LoginView from './components/LoginView';
 import {
+  acknowledgeAlert,
   buildWebSocketUrl,
   createCase,
   fetchAlerts,
@@ -14,8 +15,11 @@ import {
   fetchIngestionHealth,
   fetchHealth,
   fetchSummary,
+  fetchThreatIntel,
+  fetchThreatIntelByIp,
   fetchTuningSummary,
   fetchThreats,
+  enrichThreat,
   login,
   updateCase,
 } from './api/client';
@@ -38,6 +42,9 @@ export default function App() {
   const [finalReport, setFinalReport] = useState(null);
   const [health, setHealth] = useState(null);
   const [liveEvents, setLiveEvents] = useState([]);
+  const [threatIntelById, setThreatIntelById] = useState({});
+  const [threatIntelLoadingById, setThreatIntelLoadingById] = useState({});
+  const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(Boolean(token));
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState('');
@@ -91,6 +98,11 @@ export default function App() {
     function connectStream() {
       try {
         socket = new WebSocket(buildWebSocketUrl(token));
+        socket.onopen = () => {
+          if (!cancelled) {
+            setWsConnected(true);
+          }
+        };
         socket.onmessage = (event) => {
           const payload = JSON.parse(event.data);
           setLiveEvents((current) => [payload, ...current].slice(0, 40));
@@ -108,6 +120,7 @@ export default function App() {
         };
         socket.onclose = () => {
           if (!cancelled) {
+            setWsConnected(false);
             setSnack('Live stream disconnected');
           }
         };
@@ -187,6 +200,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    setWsConnected(false);
     localStorage.removeItem(TOKEN_KEY);
     setToken('');
     setRole('');
@@ -201,7 +215,42 @@ export default function App() {
     setFinalReport(null);
     setHealth(null);
     setLiveEvents([]);
+    setThreatIntelById({});
+    setThreatIntelLoadingById({});
     navigate('/', { replace: true });
+  }
+
+  async function handleEnrichThreat(threat) {
+    if (!token || !threat) {
+      return;
+    }
+
+    const threatKey = threat.id || threat.source_ip || threat.ip;
+    if (!threatKey) {
+      setSnack('This threat has no usable identifier or IP for enrichment');
+      return;
+    }
+
+    setThreatIntelLoadingById((current) => ({ ...current, [threatKey]: true }));
+    try {
+      let intel;
+      if (threat.id) {
+        const updatedThreat = await enrichThreat(token, threat.id);
+        const refreshedThreats = await fetchThreats(token);
+        setThreats(refreshedThreats);
+        intel = updatedThreat?.evidence?.threat_intel || await fetchThreatIntel(token, threat.id);
+      } else {
+        const ip = threat.source_ip || threat.ip;
+        intel = await fetchThreatIntelByIp(token, ip);
+      }
+
+      setThreatIntelById((current) => ({ ...current, [threatKey]: intel }));
+      setSnack(`Threat intel updated for ${threat.source_ip || threat.ip || threat.id}`);
+    } catch (requestError) {
+      setSnack(requestError.message);
+    } finally {
+      setThreatIntelLoadingById((current) => ({ ...current, [threatKey]: false }));
+    }
   }
 
   async function handleCreateCaseFromAlert(alertId) {
@@ -215,6 +264,20 @@ export default function App() {
       setCases(casesData);
       setSelectedCaseId(newCase.id);
       setSnack(`Case opened: ${newCase.title}`);
+    } catch (requestError) {
+      setSnack(requestError.message);
+    }
+  }
+
+  async function handleAcknowledgeAlert(alertId) {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const updatedAlert = await acknowledgeAlert(token, alertId);
+      setAlerts((current) => current.map((item) => (item.id === updatedAlert.id ? updatedAlert : item)));
+      setSnack(`Alert acknowledged: ${updatedAlert.title}`);
     } catch (requestError) {
       setSnack(requestError.message);
     }
@@ -261,7 +324,12 @@ export default function App() {
         onLogout={handleLogout}
         onSelectCase={setSelectedCaseId}
         onCreateCaseFromAlert={handleCreateCaseFromAlert}
+        onAcknowledgeAlert={handleAcknowledgeAlert}
         onUpdateCase={handleUpdateCase}
+        onEnrichThreat={handleEnrichThreat}
+        threatIntelById={threatIntelById}
+        threatIntelLoadingById={threatIntelLoadingById}
+        wsConnected={wsConnected}
       />
       <Snackbar
         open={Boolean(snack)}

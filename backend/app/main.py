@@ -25,6 +25,7 @@ from app.sample_data import SAMPLE_LOGS
 from app.services.detector import ThreatDetector
 from app.services.monitoring import MonitoringService
 from app.services.notifier import Notifier
+from app.services.threat_intel import ThreatIntelService
 from app.services.websocket_manager import WebSocketManager
 
 
@@ -41,8 +42,9 @@ async def _wait_for_database(database) -> None:
 
 async def _seed_demo_data(app: FastAPI) -> None:
     database = app.state.database
+    settings = app.state.settings
 
-    if await database["users"].count_documents({}) == 0:
+    if settings.seed_default_users and await database["users"].count_documents({}) == 0:
         await database["users"].insert_many(
             [
                 {
@@ -62,7 +64,7 @@ async def _seed_demo_data(app: FastAPI) -> None:
             ]
         )
 
-    if await database["logs"].count_documents({}) == 0:
+    if settings.seed_demo_logs and await database["logs"].count_documents({}) == 0:
         actor = {"id": "user-admin", "username": "admin", "role": "admin"}
         for payload in SAMPLE_LOGS:
             await app.state.monitoring_service.ingest_log(database, payload, actor)
@@ -89,10 +91,18 @@ async def lifespan(app: FastAPI):
             "to": settings.alert_email_to,
         },
     )
+    app.state.threat_intel_service = ThreatIntelService(
+        virustotal_api_key=settings.virustotal_api_key,
+        alienvault_otx_api_key=settings.alienvault_otx_api_key,
+        enabled=settings.enable_external_enrichment,
+        timeout_seconds=settings.enrichment_timeout_seconds,
+    )
     app.state.monitoring_service = MonitoringService(
         app.state.detector,
         app.state.notifier,
         app.state.websocket_manager,
+        app.state.threat_intel_service,
+        settings.enable_external_enrichment,
     )
 
     await _wait_for_database(database)

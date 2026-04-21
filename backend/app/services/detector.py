@@ -91,6 +91,23 @@ class ThreatDetector:
                     "timestamp": {"$gte": cutoff_10m},
                 }
             )
+            if 2 <= recent_failures < 5:
+                threat_type = "credential_stuffing_probe"
+                if threat_type not in threat_types:
+                    threats.append(self._build_threat(
+                        log,
+                        threat_type=threat_type,
+                        rule_id="AUTH-000",
+                        title=f"Repeated authentication failures from {source_ip}",
+                        description=f"{recent_failures} failed authentication events were observed from {source_ip} within 10 minutes.",
+                        severity="medium",
+                        confidence=min(0.9, 0.6 + (recent_failures * 0.05)),
+                        evidence={"failed_attempts": recent_failures, "window_minutes": 10},
+                        mitre_tactic="Credential Access",
+                        mitre_technique="T1110",
+                        response_guidance="Review account targets and block source IP if failure pattern persists.",
+                    ))
+                    threat_types.add(threat_type)
             if recent_failures >= 5:
                 threat_type = "brute_force"
                 severity = "critical" if recent_failures >= 10 else "high"
@@ -99,7 +116,7 @@ class ThreatDetector:
                         log,
                         threat_type=threat_type,
                         rule_id="AUTH-001",
-                        title="Brute force attempt detected",
+                        title=f"Brute force attempt detected from {source_ip}",
                         description=f"{recent_failures} failed authentication events were observed from {source_ip} within 10 minutes.",
                         severity=severity,
                         confidence=min(0.98, 0.7 + (recent_failures * 0.03)),
@@ -268,14 +285,21 @@ class ThreatDetector:
                     ))
                     threat_types.add(threat_type)
 
-        if self.anomaly_enabled and self._is_anomaly(log):
+        # Limit generic anomaly alerts to security-relevant activity so the feed is not flooded by benign session noise.
+        anomaly_candidate = (
+            event_kind in {"failed_login", "access_denied", "payload_abuse", "web_request", "auth"}
+            or bool(source_ip)
+            or (log.get("status_code") in (401, 403, 404, 429, 500, 502, 503))
+            or str(log.get("severity", "")).lower() in {"warning", "error", "critical", "high"}
+        )
+        if self.anomaly_enabled and anomaly_candidate and not threat_types and self._is_anomaly(log):
             threat_type = "anomaly"
             if threat_type not in threat_types:
                 threats.append(self._build_threat(
                     log,
                     threat_type=threat_type,
                     rule_id="UEBA-001",
-                    title="Behavioral anomaly detected",
+                    title=f"Behavioral anomaly detected ({event_kind})",
                     description="The event deviates from the learned baseline profile.",
                     severity="medium",
                     confidence=0.84,
@@ -304,7 +328,26 @@ class ThreatDetector:
                 ))
                 threat_types.add(threat_type)
 
-        return threats
+        # Suppress duplicate threats of the same type from the same entity in a short window,
+        # so the live feed is actionable and not filled with identical repeats.
+        deduplicated_threats: list[dict[str, Any]] = []
+        dedupe_cutoff = now - timedelta(minutes=3)
+        for threat in threats:
+            query: dict[str, Any] = {
+                "threat_type": threat.get("threat_type"),
+                "created_at": {"$gte": dedupe_cutoff},
+            }
+            if threat.get("source_ip"):
+                query["source_ip"] = threat.get("source_ip")
+            elif threat.get("username"):
+                query["username"] = threat.get("username")
+
+            recent_duplicates = await database["threats"].count_documents(query)
+            if recent_duplicates > 0:
+                continue
+            deduplicated_threats.append(threat)
+
+        return deduplicated_threats
 
     async def _is_suppressed(self, log: dict[str, Any], database) -> bool:
         source = str(log.get("source") or "")

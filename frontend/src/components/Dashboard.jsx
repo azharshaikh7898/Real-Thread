@@ -99,12 +99,37 @@ function SeverityChip({ severity }) {
   );
 }
 
-export default function Dashboard({ summary, threats, alerts, cases, caseTimeline, selectedCase, ingestionHealth, tuningSummary, finalReport, health, liveEvents, role, onLogout, onSelectCase, onCreateCaseFromAlert, onUpdateCase }) {
+export default function Dashboard({ summary, threats, alerts, cases, caseTimeline, selectedCase, ingestionHealth, tuningSummary, finalReport, health, liveEvents, role, onLogout, onSelectCase, onCreateCaseFromAlert, onAcknowledgeAlert, onUpdateCase, onEnrichThreat, threatIntelById, threatIntelLoadingById, wsConnected }) {
   const displayThreats = threats;
+  const dedupedThreats = displayThreats.filter((threat, index, all) => {
+    const fingerprint = [
+      threat.threat_type || threat.title || 'unknown',
+      threat.source_ip || threat.ip || 'no-ip',
+      threat.username || 'no-user',
+    ].join('|');
+    return all.findIndex((candidate) => [
+      candidate.threat_type || candidate.title || 'unknown',
+      candidate.source_ip || candidate.ip || 'no-ip',
+      candidate.username || 'no-user',
+    ].join('|') === fingerprint) === index;
+  });
   const lineData = groupByHour(displayThreats);
   const pieData = severityDistribution(displayThreats);
   const latestAlerts = alerts.slice(0, 5);
-  const latestThreats = displayThreats.slice(0, 8);
+  const latestThreats = dedupedThreats.slice(0, 8);
+
+  function getThreatIntel(threat) {
+    const key = threat.id || threat.source_ip || threat.ip;
+    if (key && threatIntelById?.[key]) {
+      return threatIntelById[key];
+    }
+    return threat?.evidence?.threat_intel || null;
+  }
+
+  function isThreatIntelLoading(threat) {
+    const key = threat.id || threat.source_ip || threat.ip;
+    return Boolean(key && threatIntelLoadingById?.[key]);
+  }
 
   return (
     <Box className="dashboard-shell">
@@ -120,6 +145,7 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
         <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
           <Chip icon={<ShieldIcon />} label={role} color="primary" />
           <Chip icon={<GppGoodIcon />} label={health?.status || 'unknown'} color={health?.status === 'operational' ? 'success' : 'warning'} />
+          <Chip icon={wsConnected ? '●' : '○'} label={wsConnected ? 'Live connected' : 'Offline'} color={wsConnected ? 'success' : 'error'} />
           <Chip icon={<AccessAlarmIcon />} label={`${summary?.open_alerts || 0} open alerts`} color="warning" />
           <Chip icon={<FeedIcon />} label={`${cases?.length || 0} cases`} color="info" />
           <Chip label="Sign out" variant="outlined" onClick={onLogout} clickable />
@@ -191,10 +217,26 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
                   <Box className="feed-item-main">
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{threat.title || threat.threat_type || 'Threat'}</Typography>
                     <Typography variant="body2" color="text.secondary">{threat.description || `IP: ${threat.ip || threat.source_ip || 'n/a'}`}</Typography>
+                    {getThreatIntel(threat) ? (
+                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+                        <Chip size="small" label={`Intel score ${getThreatIntel(threat).risk_score || 0}/100`} />
+                        <Chip size="small" variant="outlined" label={getThreatIntel(threat).summary || 'intel ready'} />
+                      </Stack>
+                    ) : null}
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                     <SeverityChip severity={threat.severity || 'info'} />
                     <Typography variant="caption" color="text.secondary">{threat.ip || threat.source_ip || 'n/a'}</Typography>
+                    {onEnrichThreat ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => onEnrichThreat(threat)}
+                        disabled={isThreatIntelLoading(threat) || !(threat.id || threat.source_ip || threat.ip)}
+                      >
+                        {isThreatIntelLoading(threat) ? 'Loading intel...' : 'Threat intel'}
+                      </Button>
+                    ) : null}
                   </Stack>
                 </Box>
               )) : <Typography color="text.secondary">No threats detected yet.</Typography>}
@@ -206,11 +248,11 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
           <Paper className="panel">
             <Box className="panel-header">
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Threats</Typography>
-              <Chip size="small" label={`${displayThreats.length} records`} />
+              <Chip size="small" label={`${dedupedThreats.length} records`} />
             </Box>
             <Stack spacing={1.25}>
-              {displayThreats.map((t, index) => (
-                <Box key={`${t.ip || 'na'}-${t.threat_type || 'na'}-${index}`} className="alert-row">
+              {dedupedThreats.map((t, index) => (
+                <Box key={`${t.ip || t.source_ip || 'na'}-${t.threat_type || 'na'}-${index}`} className="alert-row">
                   <Typography variant="body2">IP: {t.ip || t.source_ip || 'n/a'}</Typography>
                   <Typography variant="body2">Type: {t.threat_type || t.title || 'n/a'}</Typography>
                   <Typography variant="body2">Severity: {t.severity || 'info'}</Typography>
@@ -219,9 +261,24 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
                       ? 'N/A'
                       : new Date(t.timestamp).toLocaleString()}
                   </Typography>
+                  {onEnrichThreat ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => onEnrichThreat(t)}
+                      disabled={isThreatIntelLoading(t) || !(t.id || t.source_ip || t.ip)}
+                    >
+                      {isThreatIntelLoading(t) ? 'Loading intel...' : 'Threat intel'}
+                    </Button>
+                  ) : null}
+                  {getThreatIntel(t) ? (
+                    <Typography variant="caption" color="text.secondary">
+                      Intel: {getThreatIntel(t).summary || `risk ${getThreatIntel(t).risk_score || 0}/100`}
+                    </Typography>
+                  ) : null}
                 </Box>
               ))}
-              {!displayThreats.length ? <Typography color="text.secondary">No threats detected yet.</Typography> : null}
+              {!dedupedThreats.length ? <Typography color="text.secondary">No threats detected yet.</Typography> : null}
             </Stack>
           </Paper>
         </Grid>
@@ -242,6 +299,16 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
                   <Stack spacing={1} alignItems="flex-end">
                     <SeverityChip severity={alert.severity} />
                     <Typography variant="caption" color="text.secondary">{alert.delivery_status}</Typography>
+                    {onAcknowledgeAlert ? (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => onAcknowledgeAlert(alert.id)}
+                        disabled={Boolean(alert.acknowledged)}
+                      >
+                        {alert.acknowledged ? 'Acknowledged' : 'Acknowledge'}
+                      </Button>
+                    ) : null}
                     {onCreateCaseFromAlert ? (
                       <Button size="small" variant="outlined" onClick={() => onCreateCaseFromAlert(alert.id)}>
                         Open case

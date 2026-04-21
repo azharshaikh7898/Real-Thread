@@ -8,10 +8,12 @@ from app.core.config import get_settings
 
 
 class MonitoringService:
-    def __init__(self, detector, notifier, websocket_manager) -> None:
+    def __init__(self, detector, notifier, websocket_manager, threat_intel_service=None, enable_external_enrichment: bool = True) -> None:
         self.detector = detector
         self.notifier = notifier
         self.websocket_manager = websocket_manager
+        self.threat_intel_service = threat_intel_service
+        self.enable_external_enrichment = enable_external_enrichment
 
     async def ingest_log(self, database, payload: dict[str, Any], actor: dict[str, Any]) -> dict[str, Any]:
         now = datetime.now(timezone.utc)
@@ -54,6 +56,16 @@ class MonitoringService:
         persisted_threats: list[dict[str, Any]] = []
 
         for threat in threats:
+            if self.enable_external_enrichment and self.threat_intel_service:
+                source_ip = threat.get("source_ip") or log_record.get("src_ip")
+                if source_ip:
+                    intel = await self.threat_intel_service.enrich_ip(str(source_ip))
+                    evidence = threat.get("evidence")
+                    if not isinstance(evidence, dict):
+                        evidence = {}
+                    evidence["threat_intel"] = intel
+                    threat["evidence"] = evidence
+
             await database["threats"].insert_one(threat)
             alert = self._build_alert(threat)
             await database["alerts"].insert_one(alert)
