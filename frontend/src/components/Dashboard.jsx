@@ -101,22 +101,10 @@ function SeverityChip({ severity }) {
 
 export default function Dashboard({ summary, threats, alerts, cases, caseTimeline, selectedCase, ingestionHealth, tuningSummary, finalReport, health, liveEvents, role, onLogout, onSelectCase, onCreateCaseFromAlert, onAcknowledgeAlert, onUpdateCase, onEnrichThreat, threatIntelById, threatIntelLoadingById, wsConnected }) {
   const displayThreats = threats;
-  const dedupedThreats = displayThreats.filter((threat, index, all) => {
-    const fingerprint = [
-      threat.threat_type || threat.title || 'unknown',
-      threat.source_ip || threat.ip || 'no-ip',
-      threat.username || 'no-user',
-    ].join('|');
-    return all.findIndex((candidate) => [
-      candidate.threat_type || candidate.title || 'unknown',
-      candidate.source_ip || candidate.ip || 'no-ip',
-      candidate.username || 'no-user',
-    ].join('|') === fingerprint) === index;
-  });
   const lineData = groupByHour(displayThreats);
   const pieData = severityDistribution(displayThreats);
   const latestAlerts = alerts.slice(0, 5);
-  const latestThreats = dedupedThreats.slice(0, 8);
+  const latestThreats = displayThreats.slice(0, 8);
 
   function getThreatIntel(threat) {
     const key = threat.id || threat.source_ip || threat.ip;
@@ -248,10 +236,10 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
           <Paper className="panel">
             <Box className="panel-header">
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Threats</Typography>
-              <Chip size="small" label={`${dedupedThreats.length} records`} />
+              <Chip size="small" label={`${displayThreats.length} records`} />
             </Box>
             <Stack spacing={1.25}>
-              {dedupedThreats.map((t, index) => (
+              {displayThreats.map((t, index) => (
                 <Box key={`${t.ip || t.source_ip || 'na'}-${t.threat_type || 'na'}-${index}`} className="alert-row">
                   <Typography variant="body2">IP: {t.ip || t.source_ip || 'n/a'}</Typography>
                   <Typography variant="body2">Type: {t.threat_type || t.title || 'n/a'}</Typography>
@@ -278,7 +266,7 @@ export default function Dashboard({ summary, threats, alerts, cases, caseTimelin
                   ) : null}
                 </Box>
               ))}
-              {!dedupedThreats.length ? <Typography color="text.secondary">No threats detected yet.</Typography> : null}
+              {!displayThreats.length ? <Typography color="text.secondary">No threats detected yet.</Typography> : null}
             </Stack>
           </Paper>
         </Grid>
