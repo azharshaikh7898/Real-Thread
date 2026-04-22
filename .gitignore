@@ -4,8 +4,13 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+.env.*
+!.env.example
 backend/.venv/
 backend/.pytest_cache/
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Node
 node_modules/
