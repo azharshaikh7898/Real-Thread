@@ -94,6 +94,8 @@ async def lifespan(app: FastAPI):
     app.state.threat_intel_service = ThreatIntelService(
         virustotal_api_key=settings.virustotal_api_key,
         alienvault_otx_api_key=settings.alienvault_otx_api_key,
+        abuseipdb_api_key=settings.abuseipdb_api_key,
+        shodan_api_key=settings.shodan_api_key,
         enabled=settings.enable_external_enrichment,
         timeout_seconds=settings.enrichment_timeout_seconds,
     )

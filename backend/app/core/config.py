@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     enrichment_timeout_seconds: int = Field(default=6, alias="ENRICHMENT_TIMEOUT_SECONDS")
     virustotal_api_key: str | None = Field(default=None, alias="VIRUSTOTAL_API_KEY")
     alienvault_otx_api_key: str | None = Field(default=None, alias="ALIENVAULT_OTX_API_KEY")
+    abuseipdb_api_key: str | None = Field(default=None, alias="ABUSEIPDB_API_KEY")
+    shodan_api_key: str | None = Field(default=None, alias="SHODAN_API_KEY")
     ioc_watchlist: str = Field(default="", alias="IOC_WATCHLIST")
     seed_default_users: bool = Field(default=True, alias="SEED_DEFAULT_USERS")
     seed_demo_logs: bool = Field(default=True, alias="SEED_DEMO_LOGS")
