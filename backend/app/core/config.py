@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     cors_origins: str = Field(
         default=(
-            "http://localhost,http://localhost:3000,http://localhost:4173,http://localhost:18080,"
+            "http://localhost,http://localhost:3000,http://localhost:4173,http://localhost:5173,http://localhost:18080,"
             "http://localhost:18081,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:4173,"
-            "http://127.0.0.1:4174,http://127.0.0.1:18080,http://127.0.0.1:18081"
+            "http://127.0.0.1:5173,http://127.0.0.1:4174,http://127.0.0.1:18080,http://127.0.0.1:18081"
         ),
         alias="CORS_ORIGINS",
     )

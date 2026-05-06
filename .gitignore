@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+venv/
 .env
 .env.*
 !.env.example
@@ -11,6 +12,9 @@ backend/.pytest_cache/
 backend/.env
 backend/.env.*
 !backend/.env.example
+
+# Database
+backend/data/app_state.json
 
 # Node
 node_modules/
